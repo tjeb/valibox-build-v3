@@ -115,27 +115,52 @@ class Builder:
         # checked out, or data from a file that may need to be created in
         # an earlier step) use a Conditional
 
+
+        #
+        # Basic repository checkouts
+        #
         steps = []
-        steps.append(CmdStep("git clone https://github.com/lede-project/source lede-source",
-                             conditional=DirExistsConditional('lede-source')
-        ))
-        steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs",
+        #steps.append(CmdStep("git clone https://github.com/lede-project/source lede-source",
+        #                     conditional=DirExistsConditional('lede-source')
+        #))
+        sidn_pkg_feed_dir = "sidn_openwrt_pkgs"
+        steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
                              conditional=DirExistsConditional('sidn_openwrt_pkgs')
         ))
-        steps.append(CmdStep("git clone https://github.com/SIDN/spin",
-                             conditional=DirExistsConditional('spin')
-        ))
-        # only relevant if we use a local build of spin (TODO)
-        # TODO: make a SelectGitBranch step?
-        branch = self.config.get("SPIN", "source_branch")
-        steps.append(CmdStep("git checkout %s" % branch, "spin",
-                             conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
-                    ))
-        steps.append(CmdStep("git pull", "spin"))
-        steps.append(UpdateFeedsConf("lede-source"))
+        # If we build SPIN locally, we need to check it out as well (
+        # (and perform magic with the sidn_openwrt_pkgs checkout)
+        if self.config.getboolean("SPIN", "local"):
+            # TODO: actually, if the user specifies a local branch, maybe
+            # we should not do any git things at all for SPIN
+            steps.append(CmdStep("git clone https://github.com/SIDN/spin",
+                                 conditional=DirExistsConditional('spin')
+            ))
+            # only relevant if we use a local build of spin (TODO)
+            # TODO: make a SelectGitBranch step?
+            branch = self.config.get("SPIN", "source_branch")
+            steps.append(CmdStep("git checkout %s" % branch, "spin",
+                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
+                        ))
+            steps.append(CmdStep("git pull", "spin"))
+
+            # Create a local release tarball from the checkout, and
+            # update the PKGHASH and location in the package feed data
+            # TODO: there are a few hardcoded values assumed here and in the next few steps
+            steps.append(CmdStep("./create_tarball.sh", directory="spin"))
+
+            # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
+            orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
+            sidn_pkg_feed_dir = sidn_pkg_feed_dir + "_local"
+            steps.append(CmdStep("cp -r %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
+            steps.append(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
+
+        steps.append(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
         if self.config.getboolean('LEDE', 'update_all_feeds'):
             steps.append(CmdStep("./scripts/feeds update -a", "lede-source"))
             steps.append(CmdStep("./scripts/feeds install -a", "lede-source"))
+        else:
+            steps.append(CmdStep("./scripts/feeds update sidn", "lede-source"))
+            steps.append(CmdStep("./scripts/feeds install -a -p sidn", "lede-source"))
         target_device = self.config.get('LEDE', 'target_device')
         if target_device == 'all':
             targets = [ 'gl-ar150', 'gl-mt300a', 'gl-6416' ]

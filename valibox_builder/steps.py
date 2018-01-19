@@ -36,13 +36,12 @@ class CmdStep(Step):
             return basic_cmd(self.cmd, may_fail=self.may_fail)
 
 class UpdateFeedsConf(Step):
-    line_to_add = "src-link sidn ../sidn_openwrt_pkgs\n"
-
-    def __init__(self, directory):
+    def __init__(self, directory, feed_dir):
         self.directory = directory
+        self.line_to_add = "src-link sidn %s\n" % feed_dir
 
     def __str__(self):
-        return "in %s: add %s to feeds.conf" % (self.directory, self.line_to_add)
+        return "in %s: add '%s' to feeds.conf" % (self.directory, self.line_to_add.strip())
 
     def perform(self):
         with gotodir(self.directory):
@@ -52,3 +51,40 @@ class UpdateFeedsConf(Step):
                         out_file.write(line)
                     out_file.write(self.line_to_add)
         return True
+
+class UpdatePkgMakefile(Step):
+    def __init__(self, directory, makefile, tarfile):
+        self.directory = directory
+        self.makefile = makefile
+        self.tarfile = tarfile
+
+    def __str__(self):
+        return "in %s: Update the LEDE package makefile %s to use %s as the source" % (self.directory, self.makefile, self.tarfile)
+
+    def perform(self):
+        with gotodir(self.directory):
+            # First, get the hash of the tarfile
+            hash_line = basic_cmd_output("sha256sum %s" % self.tarfile)
+            if hash_line is None:
+                # print error?
+                return False
+            print("[XX] HASHLINE: '%s'" % hash_line)
+            print("[XX] SPLIT PARTS: '%s'" % hash_line.split("\s"))
+            hash_str = hash_line.split(" ")[0]
+
+            # Read the makefile, and update it in a tmp file
+            # should we use mktempfile for this, or is this ok?
+            with open(self.makefile, "r") as infile:
+                with open(self.makefile + ".tmp", "w") as outfile:
+                    for line in infile.readlines():
+                        if line.startswith("PKG_SOURCE_URL"):
+                            outfile.write("PKG_SOURCE_URL:=file://%s\n" % self.tarfile)
+                        elif line.startswith("PKG_HASH"):
+                            outfile.write("PKG_HASH:=%s\n" % hash_str)
+                        else:
+                            outfile.write(line)
+            # seems like we succeeded, overwrite the makefile
+            #return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
+            basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
+            print("[XX] done but failing for now")
+            return False
