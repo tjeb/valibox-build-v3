@@ -40,16 +40,19 @@ class BuildConfig:
         ('main', collections.OrderedDict((
         ))),
         ('LEDE', collections.OrderedDict((
+                    ('update_git', True),
                     ('source_branch', '17.01'),
                     ('target_device', 'all'),
                     ('update_all_feeds', False),
                     ('verbose_build', False),
         ))),
         ('sidn_openwrt_pkgs', collections.OrderedDict((
+                    ('update_git', True),
                     ('source_branch', 'release-1.4'),
         ))),
         ('SPIN', collections.OrderedDict((
                     ('local', False),
+                    ('update_git', True),
                     ('source_branch', 'master'),
         ))),
         ('Release', collections.OrderedDict((
@@ -120,28 +123,40 @@ class Builder:
         # Basic repository checkouts
         #
         steps = []
-        #steps.append(CmdStep("git clone https://github.com/lede-project/source lede-source",
-        #                     conditional=DirExistsConditional('lede-source')
-        #))
+        if self.config.getboolean("LEDE", "update_git"):
+            steps.append(CmdStep("git clone https://github.com/lede-project/source lede-source",
+                                 conditional=DirExistsConditional('lede-source')
+            ))
+            branch = self.config.get("LEDE", "source_branch")
+            steps.append(CmdStep("git checkout %s" % branch, "lede-source",
+                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'lede-source')
+                        ))
+            steps.append(CmdStep("git pull", "lede-source"))
+
         sidn_pkg_feed_dir = "sidn_openwrt_pkgs"
-        steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
-                             conditional=DirExistsConditional('sidn_openwrt_pkgs')
-        ))
+        if self.config.getboolean("sidn_openwrt_pkgs", "update_git"):
+            steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
+                                 conditional=DirExistsConditional('sidn_openwrt_pkgs')
+            ))
+            branch = self.config.get("sidn_openwrt_pkgs", "source_branch")
+            steps.append(CmdStep("git checkout %s" % branch, "sidn_openwrt_pkgs",
+                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'sidn_openwrt_pkgs')
+                        ))
+            steps.append(CmdStep("git pull", "lede-source"))
         # If we build SPIN locally, we need to check it out as well (
         # (and perform magic with the sidn_openwrt_pkgs checkout)
         if self.config.getboolean("SPIN", "local"):
-            # TODO: actually, if the user specifies a local branch, maybe
-            # we should not do any git things at all for SPIN
-            steps.append(CmdStep("git clone https://github.com/SIDN/spin",
-                                 conditional=DirExistsConditional('spin')
-            ))
-            # only relevant if we use a local build of spin (TODO)
-            # TODO: make a SelectGitBranch step?
-            branch = self.config.get("SPIN", "source_branch")
-            steps.append(CmdStep("git checkout %s" % branch, "spin",
-                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
-                        ))
-            steps.append(CmdStep("git pull", "spin"))
+            if self.config.getboolean("SPIN", "update_git"):
+                steps.append(CmdStep("git clone https://github.com/SIDN/spin",
+                                     conditional=DirExistsConditional('spin')
+                ))
+                # only relevant if we use a local build of spin (TODO)
+                # TODO: make a SelectGitBranch step?
+                branch = self.config.get("SPIN", "source_branch")
+                steps.append(CmdStep("git checkout %s" % branch, "spin",
+                                     conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
+                            ))
+                steps.append(CmdStep("git pull", "spin"))
 
             # Create a local release tarball from the checkout, and
             # update the PKGHASH and location in the package feed data
