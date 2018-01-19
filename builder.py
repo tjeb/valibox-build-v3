@@ -22,7 +22,6 @@
 import argparse
 import os
 import subprocess
-import shlex
 import configparser
 import collections
 import sys
@@ -31,9 +30,7 @@ from valibox_builder.util import *
 from valibox_builder.conditionals import *
 from valibox_builder.steps import *
 
-#
-# Helper functions for dealing with copying files
-#
+
 class BuildConfig:
     CONFIG_FILE = ".valibox_build_config"
 
@@ -41,16 +38,22 @@ class BuildConfig:
 
     DEFAULTS = collections.OrderedDict((
         ('main', collections.OrderedDict((
-            ('LEDE branch', 'master'),
-            ('sidn_openwrt_packages branch', 'master'),
-            ('SPIN branch', 'master'),
-            ('local SPIN code', False),
-            ('Update all feeds', False),
-            ('asdf', False),
-            ('target architecture', 'all')
+        ))),
+        ('LEDE', collections.OrderedDict((
+                    ('source_branch', '17.01'),
+                    ('target_device', 'all'),
+                    ('update_all_feeds', False),
+                    ('verbose_build', False),
+        ))),
+        ('sidn_openwrt_pkgs', collections.OrderedDict((
+                    ('source_branch', 'release-1.4'),
         ))),
         ('SPIN', collections.OrderedDict((
-                    ('foo', 'bar'),
+                    ('local', False),
+                    ('source_branch', 'master'),
+        ))),
+        ('Release', collections.OrderedDict((
+                    ('create_release', False),
         ))),
     ))
 
@@ -73,6 +76,10 @@ class BuildConfig:
 
     def get(self, section, option):
         return self.config.get(section, option)
+
+    def getboolean(self, section, option):
+        return self.config.getboolean(section, option)
+
 
 class Builder:
     """
@@ -118,26 +125,32 @@ class Builder:
         steps.append(CmdStep("git clone https://github.com/SIDN/spin",
                              conditional=DirExistsConditional('spin')
         ))
-        branch = self.config.get("main", "SPIN branch")
+        # only relevant if we use a local build of spin (TODO)
+        # TODO: make a SelectGitBranch step?
+        branch = self.config.get("SPIN", "source_branch")
         steps.append(CmdStep("git checkout %s" % branch, "spin",
                              conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
                     ))
         steps.append(CmdStep("git pull", "spin"))
         steps.append(UpdateFeedsConf("lede-source"))
-        if self.config.get('main', 'Update all feeds'):
+        if self.config.getboolean('LEDE', 'update_all_feeds'):
             steps.append(CmdStep("./scripts/feeds update -a", "lede-source"))
             steps.append(CmdStep("./scripts/feeds install -a", "lede-source"))
-        target_arch = self.config.get('main', 'target architecture')
-        if target_arch == 'all':
+        target_device = self.config.get('LEDE', 'target_device')
+        if target_device == 'all':
             targets = [ 'gl-ar150', 'gl-mt300a', 'gl-6416' ]
         else:
-            targets = [ target_arch ]
+            targets = [ target_device ]
         for target in targets:
             valibox_build_tools_dir = get_valibox_build_tools_dir()
             steps.append(CmdStep("cp -r ../%s/devices/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
             steps.append(CmdStep("cp ../%s/devices/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
             steps.append(CmdStep("make defconfig", "lede-source"))
-            steps.append(CmdStep("make", "lede-source"))
+            build_cmd = "make"
+            if self.config.getboolean("LEDE", "verbose_build"):
+                print(type(self.config.getboolean("LEDE", "verbose_build")))
+                build_cmd += " -j1 V=s"
+            steps.append(CmdStep(build_cmd, "lede-source"))
 
         self.steps = steps
 
@@ -163,8 +176,10 @@ class Builder:
                 return self.last_step
             self.last_step += 1
 
+
 def get_valibox_build_tools_dir():
     return os.path.dirname(__file__)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -189,13 +204,10 @@ def main():
         config.save_config()
         subprocess.call([EDITOR, config.config_file])
     elif args.print_steps:
-        print("steps:")
         builder.print_steps()
     else:
         parser.print_help()
 
-
-    #do_build()
 
 if __name__ == "__main__":
     main()
