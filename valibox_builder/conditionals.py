@@ -1,3 +1,6 @@
+import os
+from .util import *
+
 # If a conditional's perform() returns True, skip the step it is attached to
 # unless skip_if_false is True
 class CmdOutputConditional:
