@@ -68,8 +68,6 @@ class UpdatePkgMakefile(Step):
             if hash_line is None:
                 # print error?
                 return False
-            print("[XX] HASHLINE: '%s'" % hash_line)
-            print("[XX] SPLIT PARTS: '%s'" % hash_line.split("\s"))
             hash_str = hash_line.split(" ")[0]
 
             # Read the makefile, and update it in a tmp file
@@ -86,5 +84,4 @@ class UpdatePkgMakefile(Step):
             # seems like we succeeded, overwrite the makefile
             #return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
             basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
-            print("[XX] done but failing for now")
             return False

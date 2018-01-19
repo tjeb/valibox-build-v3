@@ -28,10 +28,8 @@ def basic_cmd(cmd, may_fail = False):
         return rcode == 0
 
 def basic_cmd_output(cmd):
-    print("[XX] CMD: %s\n" % cmd)
     p = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE)
     (stdout, _) = p.communicate()
-    print("[XX] STDOUT: '%s' " % stdout.decode("utf-8"))
     return stdout.decode("utf-8")
 
 def _find_getch():
