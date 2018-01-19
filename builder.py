@@ -273,8 +273,8 @@ class Builder:
             targets = [ target_arch ]
         for target in targets:
             valibox_build_tools_dir = get_valibox_build_tools_dir()
-            steps.append(CmdStep("cp -r ../%s/arch/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
-            steps.append(CmdStep("cp ../%s/arch/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
+            steps.append(CmdStep("cp -r ../%s/devices/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
+            steps.append(CmdStep("cp ../%s/devices/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
             steps.append(CmdStep("make defconfig", "lede-source"))
             steps.append(CmdStep("make", "lede-source"))
 
@@ -301,19 +301,6 @@ class Builder:
                 print("step %d FAILED: %s" % (self.last_step, step))
                 return self.last_step
             self.last_step += 1
-
-def show_help():
-    print("[s] show all steps for the current configuration")
-    print("[e] edit the configuration")
-    print("[q] quit")
-    print("[c] continue the build process from last time")
-    print("[b] start the build process from the first step")
-    print("[?] show this help")
-
-def get_user_command():
-    sys.stdout.write("[seqcb?]\n")
-    c = getch()
-    return c
 
 def get_valibox_build_tools_dir():
     return os.path.dirname(__file__)
