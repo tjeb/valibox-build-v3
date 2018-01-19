@@ -82,6 +82,4 @@ class UpdatePkgMakefile(Step):
                         else:
                             outfile.write(line)
             # seems like we succeeded, overwrite the makefile
-            #return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
-            basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
-            return False
+            return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))

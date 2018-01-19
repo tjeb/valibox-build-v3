@@ -161,7 +161,7 @@ class Builder:
             # Create a local release tarball from the checkout, and
             # update the PKGHASH and location in the package feed data
             # TODO: there are a few hardcoded values assumed here and in the next few steps
-            steps.append(CmdStep("./create_tarball.sh", directory="spin"))
+            steps.append(CmdStep("./create_tarball.sh -n", directory="spin"))
 
             # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
             orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
