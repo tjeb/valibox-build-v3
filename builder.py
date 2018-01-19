@@ -175,6 +175,7 @@ class Config:
         ('main', collections.OrderedDict((
             ('LEDE branch', 'master'),
             ('sidn_openwrt_packages branch', 'master'),
+            ('SPIN branch', 'master'),
             ('local SPIN code', False),
             ('Update all feeds', False),
             ('use make -j1 V=s', False),
@@ -239,8 +240,9 @@ def build_steps(config):
     else:
         targets = [ target_arch ]
     for target in targets:
-        steps.append(CmdStep("cp -r ../../valibox_build_tools/arch/%s/files ./files" % target, "lede-source"))
-        steps.append(CmdStep("cp ../../valibox_build_tools/arch/%s/diffconfig ./.config" % target, "lede-source"))
+        valibox_build_tools_dir = get_valibox_build_tools_dir()
+        steps.append(CmdStep("cp -r ../%s/arch/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
+        steps.append(CmdStep("cp ../%s/arch/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
         steps.append(CmdStep("make defconfig", "lede-source"))
         steps.append(CmdStep("make", "lede-source"))
     return steps
@@ -274,6 +276,9 @@ def get_user_command():
     sys.stdout.write("[seqcb?]\n")
     c = getch()
     return c
+
+def get_valibox_build_tools_dir():
+    return os.path.dirname(__file__)
 
 def main():
     #check_config()
