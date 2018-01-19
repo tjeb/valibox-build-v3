@@ -161,11 +161,11 @@ class Builder:
             # Create a local release tarball from the checkout, and
             # update the PKGHASH and location in the package feed data
             # TODO: there are a few hardcoded values assumed here and in the next few steps
-            steps.append(CmdStep("./create_tarball.sh -n", directory="spin"))
+            steps.append(CmdStep("./create_tarball.sh", directory="spin"))
 
             # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
             orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
-            sidn_pkg_feed_dir = "sidn_openwrt_pkgs_local"
+            sidn_pkg_feed_dir = sidn_pkg_feed_dir + "_local"
             steps.append(CmdStep("cp -r %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
             steps.append(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
 
