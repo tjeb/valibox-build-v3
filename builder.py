@@ -133,7 +133,7 @@ class Builder:
                         ))
             steps.append(CmdStep("git pull", "lede-source"))
 
-        sidn_pkg_feed_dir = "../sidn_openwrt_pkgs"
+        sidn_pkg_feed_dir = "sidn_openwrt_pkgs"
         if self.config.getboolean("sidn_openwrt_pkgs", "update_git"):
             steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
                                  conditional=DirExistsConditional('sidn_openwrt_pkgs')

@@ -38,7 +38,7 @@ class CmdStep(Step):
 class UpdateFeedsConf(Step):
     def __init__(self, directory, feed_dir):
         self.directory = directory
-        self.line_to_add = "src-link sidn %s\n" % feed_dir
+        self.line_to_add = "src-link sidn %s\n" % os.path.abspath(feed_dir)
 
     def __str__(self):
         return "in %s: add '%s' to feeds.conf" % (self.directory, self.line_to_add.strip())
