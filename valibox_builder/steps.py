@@ -1,4 +1,6 @@
 from .util import *
+from .releasecreator import ReleaseCreator
+
 
 class Step():
     pass
@@ -85,3 +87,20 @@ class UpdatePkgMakefile(Step):
                             outfile.write(line)
             # seems like we succeeded, overwrite the makefile
             return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
+
+class CreateReleaseStep(Step):
+    def __init__(self, version_number, changelog_file, target_directory):
+        self.version_number = version_number
+        self.changelog_file = changelog_file
+        self.target_directory = target_directory
+        self.rc = ReleaseCreator(version_number, changelog_file, target_directory)
+
+    def perform(self):
+        try:
+            return self.rc.create_release()
+        except Exception as exc:
+            print("Release creation failed: " + str(exc))
+            return False
+
+    def __str__(self):
+        return "Create the file structure for release %s, and place them in %s" % (self.version_number, self.target_directory)

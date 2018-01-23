@@ -57,6 +57,9 @@ class BuildConfig:
         ))),
         ('Release', collections.OrderedDict((
                     ('create_release', False),
+                    ('version_string', '1.0.5'),
+                    ('changelog_file', 'CHANGELOG'),
+                    ('target_directory', 'valibox_release')
         ))),
     ))
 
@@ -192,6 +195,10 @@ class Builder:
                 build_cmd += " -j1 V=s"
             steps.append(CmdStep(build_cmd, "lede-source"))
 
+        if self.config.getboolean("Release", "create_release"):
+            steps.append(CreateReleaseStep(self.config.get("Release", "version_string"),
+                                           self.config.get("Release", "changelog_file"),
+                                           self.config.get("Release", "target_directory")))
         self.steps = steps
 
     def print_steps(self):
