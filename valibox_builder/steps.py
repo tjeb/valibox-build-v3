@@ -75,9 +75,11 @@ class UpdatePkgMakefile(Step):
             with open(self.makefile, "r") as infile:
                 with open(self.makefile + ".tmp", "w") as outfile:
                     for line in infile.readlines():
-                        if line.startswith("PKG_SOURCE_URL"):
-                            outfile.write("PKG_SOURCE_URL:=file://%s\n" % self.tarfile)
-                        elif line.startswith("PKG_HASH"):
+                        if line.startswith("PKG_SOURCE:="):
+                            outfile.write("PKG_SOURCE:=%s\n" % os.path.basename(self.tarfile))
+                        elif line.startswith("PKG_SOURCE_URL:="):
+                            outfile.write("PKG_SOURCE_URL:=file://%s\n" % os.path.dirname(self.tarfile))
+                        elif line.startswith("PKG_HASH:="):
                             outfile.write("PKG_HASH:=%s\n" % hash_str)
                         else:
                             outfile.write(line)

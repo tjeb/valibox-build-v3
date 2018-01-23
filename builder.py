@@ -166,7 +166,7 @@ class Builder:
             # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
             orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
             sidn_pkg_feed_dir = sidn_pkg_feed_dir + "_local"
-            steps.append(CmdStep("cp -r %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
+            steps.append(CmdStep("cp -rf %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
             steps.append(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
 
         steps.append(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
