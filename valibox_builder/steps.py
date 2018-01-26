@@ -77,7 +77,11 @@ class UpdatePkgMakefile(Step):
             with open(self.makefile, "r") as infile:
                 with open(self.makefile + ".tmp", "w") as outfile:
                     for line in infile.readlines():
-                        if line.startswith("PKG_SOURCE:="):
+                        if line.startswith("PKG_VERSION:="):
+                            outfile.write("PKG_VERSION:=0.6-beta\n")
+                        elif line.startswith("PKG_BUILD_DIR:="):
+                            outfile.write("PKG_BUILD_DIR:=spin-0.6-beta\n")
+                        elif line.startswith("PKG_SOURCE:="):
                             outfile.write("PKG_SOURCE:=%s\n" % os.path.basename(self.tarfile))
                         elif line.startswith("PKG_SOURCE_URL:="):
                             outfile.write("PKG_SOURCE_URL:=file://%s\n" % os.path.dirname(self.tarfile))
@@ -89,18 +93,23 @@ class UpdatePkgMakefile(Step):
             return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
 
 class CreateReleaseStep(Step):
-    def __init__(self, version_number, changelog_file, target_directory):
+    def __init__(self, version_number, changelog_file, target_directory, directory=None):
         self.version_number = version_number
         self.changelog_file = changelog_file
         self.target_directory = target_directory
+        self.directory = directory
         self.rc = ReleaseCreator(version_number, changelog_file, target_directory)
 
     def perform(self):
         try:
-            return self.rc.create_release()
+            if self.directory is not None:
+                with gotodir(self.directory):
+                    return self.rc.create_release()
+            else:
+                return self.rc.create_release()
         except Exception as exc:
             print("Release creation failed: " + str(exc))
             return False
 
     def __str__(self):
-        return "Create the file structure for release %s, and place them in %s" % (self.version_number, self.target_directory)
+        return "In: %s: Create the file structure for release %s, and place them in %s" % (self.directory, self.version_number, self.target_directory)

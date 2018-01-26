@@ -12,14 +12,14 @@ class CmdOutputConditional:
 
     def perform(self):
         if self.directory is None:
-            output = basic_cmd_output(cmd)
+            output = basic_cmd_output(self.cmd)
         else:
             with gotodir(self.directory):
                 output = basic_cmd_output(self.cmd)
         if self.skip_if_false:
             return output != self.expected
         else:
-            return output == expected
+            return output == self.expected
 
     def __str__(self):
         return "IF '%s' is %s'%s'" % (self.cmd, "not " if self.skip_if_false else "", self.expected)

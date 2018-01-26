@@ -68,7 +68,6 @@ class ReleaseCreator:
             for line in sumsfile.readlines():
                 for image in IMAGES:
                     imname = image[1].rpartition('/')[2]
-                    print("imname: " + imname)
                     if imname in line:
                         parts = line.split(" ")
                         print(parts)
@@ -93,6 +92,7 @@ class ReleaseCreator:
         self.create_target_tree()
         self.copy_files()
         self.create_versions_file()
+        return True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create ValiBox release file structure")

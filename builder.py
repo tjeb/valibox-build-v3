@@ -24,6 +24,7 @@ import os
 import subprocess
 import configparser
 import collections
+import datetime
 import sys
 
 from valibox_builder.util import *
@@ -59,7 +60,9 @@ class BuildConfig:
                     ('create_release', False),
                     ('version_string', '1.0.5'),
                     ('changelog_file', 'CHANGELOG'),
-                    ('target_directory', 'valibox_release')
+                    ('target_directory', 'valibox_release'),
+                    ('beta', True),
+                    ('file_suffix', "")
         ))),
     ))
 
@@ -131,8 +134,9 @@ class Builder:
                                  conditional=DirExistsConditional('lede-source')
             ))
             branch = self.config.get("LEDE", "source_branch")
+            steps.append(CmdStep("git fetch", "lede-source"))
             steps.append(CmdStep("git checkout %s" % branch, "lede-source",
-                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'lede-source')
+                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'lede-source')
                         ))
             steps.append(CmdStep("git pull", "lede-source"))
 
@@ -141,9 +145,10 @@ class Builder:
             steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
                                  conditional=DirExistsConditional('sidn_openwrt_pkgs')
             ))
+            steps.append(CmdStep("git fetch", "sidn_openwrt_pkgs"))
             branch = self.config.get("sidn_openwrt_pkgs", "source_branch")
             steps.append(CmdStep("git checkout %s" % branch, "sidn_openwrt_pkgs",
-                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'sidn_openwrt_pkgs')
+                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'sidn_openwrt_pkgs')
                         ))
             steps.append(CmdStep("git pull", "lede-source"))
         # If we build SPIN locally, we need to check it out as well (
@@ -154,10 +159,11 @@ class Builder:
                                      conditional=DirExistsConditional('spin')
                 ))
                 # only relevant if we use a local build of spin (TODO)
+                steps.append(CmdStep("git fetch", "spin"))
                 # TODO: make a SelectGitBranch step?
                 branch = self.config.get("SPIN", "source_branch")
                 steps.append(CmdStep("git checkout %s" % branch, "spin",
-                                     conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, True, 'spin')
+                                     conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'spin')
                             ))
                 steps.append(CmdStep("git pull", "spin"))
 
@@ -169,7 +175,10 @@ class Builder:
             # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
             orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
             sidn_pkg_feed_dir = sidn_pkg_feed_dir + "_local"
-            steps.append(CmdStep("cp -rf %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
+            print("[XX] COPYING FEEDS SOURCE FROM '%s' TO '%s'" % (orig_sidn_pkg_feed_dir,sidn_pkg_feed_dir))
+            #steps.append(CmdStep("cp -rf %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
+            steps.append(CmdStep("git checkout-index -a -f --prefix=../%s/" % sidn_pkg_feed_dir, orig_sidn_pkg_feed_dir))
+
             steps.append(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
 
         steps.append(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
@@ -196,9 +205,17 @@ class Builder:
             steps.append(CmdStep(build_cmd, "lede-source"))
 
         if self.config.getboolean("Release", "create_release"):
-            steps.append(CreateReleaseStep(self.config.get("Release", "version_string"),
+            version_string = self.config.get("Release", "version_string")
+            if self.config.getboolean("Release", "beta"):
+                dt = datetime.datetime.now()
+                version_string += "-beta-%s" % dt.strftime("%Y%m%d%H%M")
+            if self.config.get("Release", "file_suffix") != "":
+                version_string += "_%s" % self.config.get("Release", "file_suffix")
+
+            steps.append(CreateReleaseStep(version_string,
                                            self.config.get("Release", "changelog_file"),
-                                           self.config.get("Release", "target_directory")))
+                                           self.config.get("Release", "target_directory"),
+                                           "lede-source"))
         self.steps = steps
 
     def print_steps(self):
