@@ -42,7 +42,7 @@ class BuildConfig:
         ))),
         ('LEDE', collections.OrderedDict((
                     ('update_git', True),
-                    ('source_branch', '17.01'),
+                    ('source_branch', 'lede-17.01'),
                     ('target_device', 'all'),
                     ('update_all_feeds', False),
                     ('verbose_build', False),
@@ -58,8 +58,8 @@ class BuildConfig:
         ))),
         ('Release', collections.OrderedDict((
                     ('create_release', False),
-                    ('version_string', '1.0.5'),
-                    ('changelog_file', 'CHANGELOG'),
+                    ('version_string', '1.5'),
+                    ('changelog_file', ''),
                     ('target_directory', 'valibox_release'),
                     ('beta', True),
                     ('file_suffix', "")
@@ -165,12 +165,13 @@ class Builder:
                 steps.append(CmdStep("git checkout %s" % branch, "spin",
                                      conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'spin')
                             ))
-                steps.append(CmdStep("git pull", "spin"))
+                steps.append(CmdStep("git pull", "spin", may_fail=True))
 
             # Create a local release tarball from the checkout, and
             # update the PKGHASH and location in the package feed data
             # TODO: there are a few hardcoded values assumed here and in the next few steps
             steps.append(CmdStep("./create_tarball.sh -n", directory="spin"))
+            steps.append(CmdStep("rm -f dl/spin-0.6-beta.tar.gz", directory="lede-source"))
 
             # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
             orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
@@ -211,9 +212,11 @@ class Builder:
                 version_string += "-beta-%s" % dt.strftime("%Y%m%d%H%M")
             if self.config.get("Release", "file_suffix") != "":
                 version_string += "_%s" % self.config.get("Release", "file_suffix")
+            changelog_file = self.config.get("Release", "changelog_file")
+            if changelog_file == "":
+                changelog_file = os.path.abspath(get_valibox_build_tools_dir()) + "/Valibox_Changelog.txt";
 
-            steps.append(CreateReleaseStep(version_string,
-                                           self.config.get("Release", "changelog_file"),
+            steps.append(CreateReleaseStep(version_string, changelog_file,
                                            self.config.get("Release", "target_directory"),
                                            "lede-source"))
         self.steps = steps
