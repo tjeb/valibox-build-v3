@@ -194,9 +194,18 @@ class Builder:
             targets = [ 'gl-ar150', 'gl-mt300a', 'gl-6416' ]
         else:
             targets = [ target_device ]
+
+        version_string = self.config.get("Release", "version_string")
+        if self.config.getboolean("Release", "beta"):
+            dt = datetime.datetime.now()
+            version_string += "-beta-%s" % dt.strftime("%Y%m%d%H%M")
+        if self.config.get("Release", "file_suffix") != "":
+            version_string += "_%s" % self.config.get("Release", "file_suffix")
+
         for target in targets:
             valibox_build_tools_dir = get_valibox_build_tools_dir()
             steps.append(CmdStep("cp -r ../%s/devices/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
+            steps.append(ValiboxVersionStep(version_string, directory="lede-source"))
             steps.append(CmdStep("cp ../%s/devices/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
             steps.append(CmdStep("make defconfig", "lede-source"))
             build_cmd = "make"
@@ -206,19 +215,14 @@ class Builder:
             steps.append(CmdStep(build_cmd, "lede-source"))
 
         if self.config.getboolean("Release", "create_release"):
-            version_string = self.config.get("Release", "version_string")
-            if self.config.getboolean("Release", "beta"):
-                dt = datetime.datetime.now()
-                version_string += "-beta-%s" % dt.strftime("%Y%m%d%H%M")
-            if self.config.get("Release", "file_suffix") != "":
-                version_string += "_%s" % self.config.get("Release", "file_suffix")
             changelog_file = self.config.get("Release", "changelog_file")
             if changelog_file == "":
                 changelog_file = os.path.abspath(get_valibox_build_tools_dir()) + "/Valibox_Changelog.txt";
 
             steps.append(CreateReleaseStep(version_string, changelog_file,
                                            self.config.get("Release", "target_directory"),
-                                           "lede-source"))
+                                           "lede-source"
+                                           ))
         self.steps = steps
 
     def print_steps(self):

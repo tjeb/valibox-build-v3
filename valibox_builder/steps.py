@@ -98,7 +98,7 @@ class CreateReleaseStep(Step):
         self.changelog_file = changelog_file
         self.target_directory = target_directory
         self.directory = directory
-        self.rc = ReleaseCreator(version_number, changelog_file, target_directory)
+        self.rc = ReleaseCreator(version_number, changelog_file, os.path.abspath(target_directory))
 
     def perform(self):
         try:
@@ -113,3 +113,32 @@ class CreateReleaseStep(Step):
 
     def __str__(self):
         return "In: %s: Create the file structure for release %s, and place them in %s" % (self.directory, self.version_number, self.target_directory)
+
+class ValiboxVersionStep(Step):
+    """
+    This step creates the "/etc/valibox.version" file
+    """
+    VERSIONFILE = "files/etc/valibox.version"
+
+    def __init__(self, version_string, directory=None):
+        self.version_string = version_string
+        self.directory = directory
+
+    def perform(self):
+        try:
+            if self.directory is not None:
+                with gotodir(self.directory):
+                    return self.writefile()
+            else:
+                return self.writefile()
+        except Exception as exc:
+            print("Error writing valibox.version file: " + str(exc))
+            return False
+
+    def __str__(self):
+        return "In: %s: Write the string '%s' to %s" % (self.directory, self.version_string, self.VERSIONFILE)
+
+    def writefile(self):
+        with open(self.VERSIONFILE, "w") as outf:
+            outf.write("%s\n" % self.version_string)
+        return True
