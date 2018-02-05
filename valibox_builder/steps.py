@@ -1,9 +1,21 @@
+from .conditionals import *
 from .util import *
 from .releasecreator import ReleaseCreator
 
 
 class Step():
-    pass
+    def at(self, directory):
+        self.directory = directory
+        return self
+
+    def if_true(self, conditional):
+        self.conditional = conditional
+
+    def if_not_cmd(self, cmd, result):
+        self.conditional = CmdOutputConditional(cmd, result, False, self.directory)
+
+    def if_dir_not_exists(self, directory):
+        self.conditional = DirExistsConditional(directory)
 
 class CmdStep(Step):
     def __init__(self, cmd, directory=None, may_fail=False, skip_if=None, conditional=None):
@@ -36,6 +48,13 @@ class CmdStep(Step):
                 return basic_cmd(self.cmd, may_fail=self.may_fail)
         else:
             return basic_cmd(self.cmd, may_fail=self.may_fail)
+
+class GitBranchStep(CmdStep):
+    def __init__(self, branch, directory):
+        self.branch = branch
+        CmdStep.__init__(self, "git checkout %s" % branch)
+        self.at(directory)
+        self.if_not_cmd('git rev-parse --abbrev-ref HEAD', branch)
 
 class UpdateFeedsConf(Step):
     def __init__(self, directory, feed_dir):

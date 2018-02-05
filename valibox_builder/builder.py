@@ -86,3 +86,25 @@ class Builder:
 
 
 
+
+class StepBuilder:
+    """
+    Steps builder helper class, with some convenience methods for repeated
+    actions
+    """
+    def __init__(self):
+        self.steps = []
+
+    def add(self, step):
+        """
+        Add any type of Step
+        """
+        self.steps.append(step)
+        return step
+
+    def add_cmd(self, cmd, *args, **kwargs):
+        """
+        Add a CmdStep with the given command and arguments
+        """
+        step = CmdStep(cmd, *args, **kwargs)
+        return self.add(step)

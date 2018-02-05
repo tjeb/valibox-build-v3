@@ -30,7 +30,7 @@ from valibox_builder.util import *
 from valibox_builder.conditionals import *
 from valibox_builder.steps import *
 
-from valibox_builder.builder import BuildConfig, Builder
+from valibox_builder.builder import BuildConfig, Builder, StepBuilder
 
 DEFAULT_CONFIG = collections.OrderedDict((
     ('main', collections.OrderedDict((
@@ -62,67 +62,57 @@ DEFAULT_CONFIG = collections.OrderedDict((
 ))
 
 def build_steps(config):
+    sb = StepBuilder()
+
     steps = []
     if config.getboolean("LEDE", "update_git"):
-        steps.append(CmdStep("git clone https://github.com/lede-project/source lede-source",
-                             conditional=DirExistsConditional('lede-source')
-        ))
-        branch = config.get("LEDE", "source_branch")
-        steps.append(CmdStep("git fetch", "lede-source"))
-        steps.append(CmdStep("git checkout %s" % branch, "lede-source",
-                             conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'lede-source')
-                    ))
-        steps.append(CmdStep("git pull", "lede-source"))
+        sb.add_cmd("git clone https://github.com/lede-project/source lede-source",
+            conditional=DirExistsConditional('lede-source'))
+        sb.add_cmd("git fetch").at("lede-source")
+        sb.add(GitBranchStep(config.get("LEDE", "source_branch"), "lede-source"))
+        sb.add_cmd("git pull").at("lede-source")
 
     sidn_pkg_feed_dir = "sidn_openwrt_pkgs"
     if config.getboolean("sidn_openwrt_pkgs", "update_git"):
-        steps.append(CmdStep("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir,
-                             conditional=DirExistsConditional('sidn_openwrt_pkgs')
-        ))
-        steps.append(CmdStep("git fetch", "sidn_openwrt_pkgs"))
-        branch = config.get("sidn_openwrt_pkgs", "source_branch")
-        steps.append(CmdStep("git checkout %s" % branch, "sidn_openwrt_pkgs",
-                             conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'sidn_openwrt_pkgs')
-                    ))
-        steps.append(CmdStep("git pull", "lede-source"))
+        sb.add_cmd("git clone https://github.com/SIDN/sidn_openwrt_pkgs %s" % sidn_pkg_feed_dir).if_dir_not_exists('sidn_openwrt_pkgs')
+        sb.add_cmd("git fetch").at("sidn_openwrt_pkgs")
+        sb.add(GitBranchStep(config.get("sidn_openwrt_pkgs", "source_branch"), "sidn_openwrt_pkgs"))
+        sb.add_cmd("git pull").at("sidn_openwrt_pkgs")
+
     # If we build SPIN locally, we need to check it out as well (
     # (and perform magic with the sidn_openwrt_pkgs checkout)
     if config.getboolean("SPIN", "local"):
         if config.getboolean("SPIN", "update_git"):
-            steps.append(CmdStep("git clone https://github.com/SIDN/spin",
-                                 conditional=DirExistsConditional('spin')
-            ))
-            # only relevant if we use a local build of spin (TODO)
-            steps.append(CmdStep("git fetch", "spin"))
-            # TODO: make a SelectGitBranch step?
-            branch = config.get("SPIN", "source_branch")
-            steps.append(CmdStep("git checkout %s" % branch, "spin",
-                                 conditional=CmdOutputConditional('git rev-parse --abbrev-ref HEAD', branch, False, 'spin')
-                        ))
-            steps.append(CmdStep("git pull", "spin", may_fail=True))
+            sb.add_cmd("git clone https://github.com/SIDN/spin").if_dir_not_exists("spin")
+
+            # only relevant if we use a local build of spin
+            sb.add_cmd("git fetch").at("spin")
+            sb.add(GitBranchStep(config.get("SPIN", "source_branch"), "spin"))
+            sb.add_cmd("git pull").at("spin") # This had may_fail=true, add again?
 
         # Create a local release tarball from the checkout, and
         # update the PKGHASH and location in the package feed data
         # TODO: there are a few hardcoded values assumed here and in the next few steps
-        steps.append(CmdStep("./create_tarball.sh -n", directory="spin"))
-        steps.append(CmdStep("rm -f dl/spin-0.6-beta.tar.gz", directory="lede-source"))
+        sb.add_cmd("./create_tarball.sh -n").at("spin")
+        sb.add_cmd("rm -f dl/spin-0.6-beta.tar.gz").at("lede-source")
 
         # Set that in the pkg feed data; we do not want to change the repository, so we make a copy and update that
         orig_sidn_pkg_feed_dir = sidn_pkg_feed_dir
         sidn_pkg_feed_dir = sidn_pkg_feed_dir + "_local"
         print("[XX] COPYING FEEDS SOURCE FROM '%s' TO '%s'" % (orig_sidn_pkg_feed_dir,sidn_pkg_feed_dir))
-        #steps.append(CmdStep("cp -rf %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
-        steps.append(CmdStep("git checkout-index -a -f --prefix=../%s/" % sidn_pkg_feed_dir, orig_sidn_pkg_feed_dir))
+        #sb.add(CmdStep("cp -rf %s %s" % (orig_sidn_pkg_feed_dir, sidn_pkg_feed_dir)))
+        sb.add_cmd("git checkout-index -a -f --prefix=../%s/" % sidn_pkg_feed_dir).at(orig_sidn_pkg_feed_dir)
 
-        steps.append(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
+        sb.add(UpdatePkgMakefile(sidn_pkg_feed_dir, "spin/Makefile", "/tmp/spin-0.6-beta.tar.gz"))
 
-    steps.append(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
+    sb.add(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
     if config.getboolean('LEDE', 'update_all_feeds'):
-        steps.append(CmdStep("./scripts/feeds update -a", "lede-source"))
-        steps.append(CmdStep("./scripts/feeds install -a", "lede-source"))
+        sb.add_cmd("./scripts/feeds update -a").at("lede-source")
+        sb.add_cmd("./scripts/feeds install -a").at("lede-source")
     else:
-        steps.append(CmdStep("./scripts/feeds update sidn", "lede-source"))
-        steps.append(CmdStep("./scripts/feeds install -a -p sidn", "lede-source"))
+        sb.add_cmd("./scripts/feeds update sidn").at("lede-source")
+        sb.add_cmd("./scripts/feeds install -a -p sidn").at("lede-source")
+
     target_device = config.get('LEDE', 'target_device')
     if target_device == 'all':
         targets = [ 'gl-ar150', 'gl-mt300a', 'gl-6416' ]
@@ -130,6 +120,7 @@ def build_steps(config):
         targets = [ target_device ]
 
     version_string = config.get("Release", "version_string")
+
     if config.getboolean("Release", "beta"):
         dt = datetime.datetime.now()
         version_string += "-beta-%s" % dt.strftime("%Y%m%d%H%M")
@@ -138,27 +129,26 @@ def build_steps(config):
 
     for target in targets:
         valibox_build_tools_dir = get_valibox_build_tools_dir()
-        steps.append(CmdStep("cp -r ../%s/devices/%s/files ./files" % (valibox_build_tools_dir, target), "lede-source"))
-        steps.append(ValiboxVersionStep(version_string, directory="lede-source"))
-        steps.append(CmdStep("cp ../%s/devices/%s/diffconfig ./.config" % (valibox_build_tools_dir, target), "lede-source"))
-        steps.append(CmdStep("make defconfig", "lede-source"))
+        sb.add_cmd("cp -r ../%s/devices/%s/files ./files" % (valibox_build_tools_dir, target)).at( "lede-source")
+        sb.add(ValiboxVersionStep(version_string)).at("lede-source")
+        sb.add_cmd("cp ../%s/devices/%s/diffconfig ./.config" % (valibox_build_tools_dir, target)).at("lede-source")
+        sb.add_cmd("make defconfig").at("lede-source")
         build_cmd = "make"
         if config.getboolean("LEDE", "verbose_build"):
             print(type(config.getboolean("LEDE", "verbose_build")))
             build_cmd += " -j1 V=s"
-        steps.append(CmdStep(build_cmd, "lede-source"))
+        sb.add_cmd(build_cmd).at("lede-source")
 
     if config.getboolean("Release", "create_release"):
         changelog_file = config.get("Release", "changelog_file")
         if changelog_file == "":
             changelog_file = os.path.abspath(get_valibox_build_tools_dir()) + "/Valibox_Changelog.txt";
 
-        steps.append(CreateReleaseStep(version_string, changelog_file,
-                                       config.get("Release", "target_directory"),
-                                       "lede-source"
-                                       ))
+        sb.add(CreateReleaseStep(version_string, changelog_file,
+                                       config.get("Release", "target_directory")).at("lede-source")
+                                       )
 
-    return steps
+    return sb.steps
 
 def get_valibox_build_tools_dir():
     return os.path.dirname(__file__)
