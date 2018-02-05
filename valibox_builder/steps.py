@@ -17,11 +17,14 @@ class Step():
     def if_dir_not_exists(self, directory):
         self.conditional = DirExistsConditional(directory)
 
+    def may_fail(self):
+        self._may_fail = True
+
 class CmdStep(Step):
     def __init__(self, cmd, directory=None, may_fail=False, skip_if=None, conditional=None):
         self.directory = directory
         self.cmd = cmd
-        self.may_fail = may_fail
+        self._may_fail = may_fail
         self.skip_if = skip_if
         self.conditional = conditional
 
@@ -45,9 +48,9 @@ class CmdStep(Step):
 
         if self.directory is not None:
             with gotodir(self.directory):
-                return basic_cmd(self.cmd, may_fail=self.may_fail)
+                return basic_cmd(self.cmd, may_fail=self._may_fail)
         else:
-            return basic_cmd(self.cmd, may_fail=self.may_fail)
+            return basic_cmd(self.cmd, may_fail=self._may_fail)
 
 class GitBranchStep(CmdStep):
     def __init__(self, branch, directory):
