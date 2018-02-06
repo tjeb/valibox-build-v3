@@ -70,7 +70,7 @@ class Builder:
             out.write("%d\n" % self.last_step)
 
     def perform_steps(self):
-        if self.last_step > len(self.steps):
+        if self.last_step is not None and self.last_step > len(self.steps):
             print("Build already completed, use -r to restart from first step")
         failed_step = None
         if self.last_step is None:
