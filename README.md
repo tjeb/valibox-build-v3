@@ -1,9 +1,9 @@
 # valibox-build-v3
 temporary repository to play around with new valibox build system
 
-This contains standard configurations for specific architectures and devices, and i am experimenting with a python wrapper to replace all the various shell scripts.
+This repository contains standard configurations for building the Valibox with SPIN for specific architectures and devices, as well as a build tool that performs all the steps necessary to build complete images and packages for all the supported devices.
 
-Main intended features:
+Main intended 'features':
     - collect and store configurations without having a clone of lede-source
     - build from scratch, but also from existing checkouts
     - remember last build configuration
@@ -11,30 +11,72 @@ Main intended features:
     - options between 'build from repo' or 'build from local' (for example for spin)
 
 
-Prerequisites
+# Build Tool
 
-* Python 3
-* ...
+## Quick start
 
-Usage
+Check out this repository, create a separate build directory, and run the builder.
 
-Create a new directory to build/download in, and run builder.py from that directory:
+    git clone https://github.com/SIDN/valibox-spin-builder
+    mkdir build
+    cd build
+    ../valibox-spin-builder/build.py -b
 
-    mkdir valibox_build
-    cd valibox_build
-    /path/to/valibox-build-tools/builder.py
+## Resuming/restarting
 
-This will only create a configuration file, and not actually start building yet. You can change settings with the -e option (or edit the configuration file, which defaults to .valibox_build_config in the current directory). See below for documentation on all the configuration options.
+If the build is stopped (by manual break or because of a problem), you can resume the build with the same command:
 
-    /path/to/valibox-build-tools/builder.py -e
+    ../valibox-spin-builder/build.py -b
 
-You can start the build by using -b. If any step along the way fails, or the process is otherwise interrupted, you can restart from the latest build step with the same command.
+You can restart the build from the first step with -r:
 
-    /path/to/valibox-build-tools/builder.py -b
+    ../valibox-spin-builder/build.py -b
 
-If you want to restart from the first step, you can use -r.
+## Editing options
 
-    /path/to/valibox-build-tools/builder.py -r
+You can edit specific build options, such as target device, source repository branches, and verbose build by using
+
+    ../valibox-spin-builder/build.py -e
+
+After that, depending on the changes, you can either restart or resume the build.
+
+## Showing all build steps without executing them
+
+If you want to review all steps that will be performed for the current configuration, you can use
+
+    ../valibox-spin-builder/build.py --print-steps
 
 
-Configuration options
+## Configuration options
+
+There are several sections in the configuration:
+
+* LEDE: Options for building the main LEDE image
+* sidn_openwrt_pkgs: Options for the SIDN-specific packages
+* SPIN: Options for SPIN
+* Release: Options regarding the release you are building
+
+Below is a full description of all options
+
+Section | Option | Value type | Description
+--------|--------|------------|------------
+LEDE | update_git | True or False | Whether to do a git update before starting the build
+LEDE | source_branch | <string> | The branch (or commit) of the lede-source tree to build
+LEDE | target_device | <name> or "all" | Target device to build for, unless this is all it should be the name of one of the directories in the devices/ directory in this repository.
+LEDE | update_all_feeds | True or False | Whether to always update all package feeds prior to building. If False, only the sidn feed is updated
+LEDE | verbose_build | True or False | When true, LEDE is built with 'make -j1 V=s'
+--------|--------|------------|------------
+sidn_openwrt_pkgs | update_git | True or False | Whether to do a git update before starting the build
+sidn_openwrt_pkgs | source_branch | <string> | The source branch or commit of the SIDN package repository to check out
+--------|--------|------------|------------
+SPIN | local | True or False | Use a local checkout of the SPIN code to build, instead of a published release version
+SPIN | update_git | True or False | Whether to do a git update before starting the build
+SPIN | source_branch | <string> | The source branch of commit of SPIN to build
+--------|--------|------------|------------
+Release | create_release | True or False | Whether to create the release file structure after building. This creates a new directory structure valibox_release in your build directory, containing the images and meta-information that were built.
+Release | version_string | <version string> | Version string to give to the release
+Release | changelog_file | <filename or empty> | Changelog file to include in the release. If empty, the file Valibox_Changelog.txt from this repository will be used.
+Release | target_directory | <string> | Directory to place the release directory structure in. Defaults to valibox_release
+Release | beta | True or False | If True, the release version and filenames will have -beta-<date> added to them
+Release | file_suffix | <string or empty> | An optional extra suffix for the release version and filenames
+
