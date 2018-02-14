@@ -80,3 +80,8 @@ Release | target_directory | &lt;string&gt; | Directory to place the release dir
 Release | beta | True or False | If True, the release version and filenames will have -beta-&lt;date&gt; added to them
 Release | file_suffix | &lt;string or empty&gt; | An optional extra suffix for the release version and filenames
 
+
+# Notes:
+
+* Building a custom local SPIN requires the SPIN source tree to have a version of create_tarball with the -n option; commits of SPIN older than 36dd2cd5 will likely fail.
+* The builder does not recognize the situation where a build option is changed that influences a step that has already been performed; if changing options does not appear to have any effect, do a full rebuild with -r
