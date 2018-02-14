@@ -69,8 +69,7 @@ def build_steps(config):
     #
     steps = []
     if config.getboolean("LEDE", "update_git"):
-        sb.add_cmd("git clone https://github.com/lede-project/source lede-source",
-            conditional=DirExistsConditional('lede-source'))
+        sb.add_cmd("git clone https://github.com/lede-project/source lede-source").if_dir_not_exists('lede-source')
         sb.add_cmd("git fetch").at("lede-source")
         sb.add(GitBranchStep(config.get("LEDE", "source_branch"), "lede-source"))
         # pull errors if the 'branch' is a detached head, so it may fail
@@ -118,11 +117,18 @@ def build_steps(config):
     #
     sb.add(UpdateFeedsConf("lede-source", sidn_pkg_feed_dir))
     if config.getboolean('LEDE', 'update_all_feeds'):
+        # Always update all feeds
         sb.add_cmd("./scripts/feeds update -a").at("lede-source")
         sb.add_cmd("./scripts/feeds install -a").at("lede-source")
     else:
-        sb.add_cmd("./scripts/feeds update sidn").at("lede-source")
-        sb.add_cmd("./scripts/feeds install -a -p sidn").at("lede-source")
+        # Only update sidn feed if the rest have been installed already
+        sb.add_cmd("./scripts/feeds update sidn").at("lede-source").if_dir_exists("package/feeds/packages")
+        sb.add_cmd("./scripts/feeds install -a -p sidn").at("lede-source").if_dir_exists("package/feeds/packages")
+
+        # Update all feeds if they haven't been installed already
+        sb.add_cmd("./scripts/feeds update -a").at("lede-source").if_dir_not_exists("package/feeds/packages")
+        sb.add_cmd("./scripts/feeds install -a").at("lede-source").if_dir_not_exists("package/feeds/packages")
+
 
     #
     # Determine target devices

@@ -1,8 +1,12 @@
 import os
 from .util import *
 
-# If a conditional's perform() returns True, skip the step it is attached to
-# unless skip_if_false is True
+# Conditional:
+# Only perform a step if the Conditional's perform() method
+# returns True
+
+# Some conditionals have a skip_if_false option, this reverses the
+# result of perform()
 class CmdOutputConditional:
     def __init__(self, cmd, expected, skip_if_false=False, directory=None):
         self.cmd = cmd
@@ -30,6 +34,16 @@ class DirExistsConditional:
 
     def perform(self):
         return os.path.exists(self.directory)
+
+    def __str__(self):
+        return "IF directory %s exists" % self.directory
+
+class DirNotExistsConditional:
+    def __init__(self, directory):
+        self.directory = directory
+
+    def perform(self):
+        return not os.path.exists(self.directory)
 
     def __str__(self):
         return "IF directory %s does not exist" % self.directory

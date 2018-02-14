@@ -15,6 +15,9 @@ class Step():
         self.conditional = CmdOutputConditional(cmd, result, False, self.directory)
 
     def if_dir_not_exists(self, directory):
+        self.conditional = DirNotExistsConditional(directory)
+
+    def if_dir_exists(self, directory):
         self.conditional = DirExistsConditional(directory)
 
     def may_fail(self):
@@ -43,7 +46,7 @@ class CmdStep(Step):
             return True
 
         if self.conditional is not None:
-            if self.conditional.perform():
+            if not self.conditional.perform():
                 return True
 
         if self.directory is not None:
