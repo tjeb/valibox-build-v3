@@ -65,14 +65,14 @@ LEDE | source_branch | <string> | The branch (or commit) of the lede-source tree
 LEDE | target_device | <name> or "all" | Target device to build for, unless this is all it should be the name of one of the directories in the devices/ directory in this repository.
 LEDE | update_all_feeds | True or False | Whether to always update all package feeds prior to building. If False, only the sidn feed is updated
 LEDE | verbose_build | True or False | When true, LEDE is built with 'make -j1 V=s'
---------|--------|------------|------------
+ | | |
 sidn_openwrt_pkgs | update_git | True or False | Whether to do a git update before starting the build
 sidn_openwrt_pkgs | source_branch | <string> | The source branch or commit of the SIDN package repository to check out
---------|--------|------------|------------
+ | | |
 SPIN | local | True or False | Use a local checkout of the SPIN code to build, instead of a published release version
 SPIN | update_git | True or False | Whether to do a git update before starting the build
 SPIN | source_branch | <string> | The source branch of commit of SPIN to build
---------|--------|------------|------------
+ | | |
 Release | create_release | True or False | Whether to create the release file structure after building. This creates a new directory structure valibox_release in your build directory, containing the images and meta-information that were built.
 Release | version_string | <version string> | Version string to give to the release
 Release | changelog_file | <filename or empty> | Changelog file to include in the release. If empty, the file Valibox_Changelog.txt from this repository will be used.
