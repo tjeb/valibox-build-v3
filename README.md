@@ -90,6 +90,5 @@ Release | file_suffix | &lt;string or empty&gt; | An optional extra suffix for t
 # TODO
 
 * Perhaps make the directories that are used for the repository checkouts configurable
-* Remove hard-coded names from ReleaseCreator class and configure them in the devices tree
 * Add command-line flags for common configuration options
 
