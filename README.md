@@ -81,7 +81,15 @@ Release | beta | True or False | If True, the release version and filenames will
 Release | file_suffix | &lt;string or empty&gt; | An optional extra suffix for the release version and filenames
 
 
-# Notes:
+# Notes
 
 * Building a custom local SPIN requires the SPIN source tree to have a version of create_tarball with the -n option; commits of SPIN older than 36dd2cd5 will likely fail.
 * The builder does not recognize the situation where a build option is changed that influences a step that has already been performed; if changing options does not appear to have any effect, do a full rebuild with -r
+
+
+# TODO
+
+* Perhaps make the directories that are used for the repository checkouts configurable
+* Remove hard-coded names from ReleaseCreator class and configure them in the devices tree
+* Add command-line flags for common configuration options
+

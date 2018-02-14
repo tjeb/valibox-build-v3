@@ -27,7 +27,6 @@ import sys
 IMAGES = [
     ("gl-inet", "ar71xx/generic/openwrt-ar71xx-generic-gl-inet-6416A-v1-squashfs-sysupgrade.bin"),
     ("gl-ar150", "ar71xx/generic/openwrt-ar71xx-generic-gl-ar150-squashfs-sysupgrade.bin"),
-#    ("gl-ar300m", "ar71xx/generic/lede-ar71xx-generic-gl-ar300m-squashfs-sysupgrade.bin"),
     ("gl-mt300a", "ramips/mt7620/openwrt-ramips-mt7620-gl-mt300a-squashfs-sysupgrade.bin")
 ]
 
