@@ -61,22 +61,22 @@ Below is a full description of all options
 Section | Option | Value type | Description
 --------|--------|------------|------------
 LEDE | update_git | True or False | Whether to do a git update before starting the build
-LEDE | source_branch | <string> | The branch (or commit) of the lede-source tree to build
-LEDE | target_device | <name> or "all" | Target device to build for, unless this is all it should be the name of one of the directories in the devices/ directory in this repository.
+LEDE | source_branch | &lt;string&gt; | The branch (or commit) of the lede-source tree to build
+LEDE | target_device | &lt;name&gt; or "all" | Target device to build for, unless this is all it should be the name of one of the directories in the devices/ directory in this repository.
 LEDE | update_all_feeds | True or False | Whether to always update all package feeds prior to building. If False, only the sidn feed is updated
 LEDE | verbose_build | True or False | When true, LEDE is built with 'make -j1 V=s'
  | | |
 sidn_openwrt_pkgs | update_git | True or False | Whether to do a git update before starting the build
-sidn_openwrt_pkgs | source_branch | <string> | The source branch or commit of the SIDN package repository to check out
+sidn_openwrt_pkgs | source_branch | &lt;string&gt; | The source branch or commit of the SIDN package repository to check out
  | | |
 SPIN | local | True or False | Use a local checkout of the SPIN code to build, instead of a published release version
 SPIN | update_git | True or False | Whether to do a git update before starting the build
-SPIN | source_branch | <string> | The source branch of commit of SPIN to build
+SPIN | source_branch | &lt;string&gt; | The source branch of commit of SPIN to build
  | | |
 Release | create_release | True or False | Whether to create the release file structure after building. This creates a new directory structure valibox_release in your build directory, containing the images and meta-information that were built.
-Release | version_string | <version string> | Version string to give to the release
-Release | changelog_file | <filename or empty> | Changelog file to include in the release. If empty, the file Valibox_Changelog.txt from this repository will be used.
-Release | target_directory | <string> | Directory to place the release directory structure in. Defaults to valibox_release
-Release | beta | True or False | If True, the release version and filenames will have -beta-<date> added to them
-Release | file_suffix | <string or empty> | An optional extra suffix for the release version and filenames
+Release | version_string | &lt;version string&gt; | Version string to give to the release
+Release | changelog_file | &lt;filename or empty&gt; | Changelog file to include in the release. If empty, the file Valibox_Changelog.txt from this repository will be used.
+Release | target_directory | &lt;string&gt; | Directory to place the release directory structure in. Defaults to valibox_release
+Release | beta | True or False | If True, the release version and filenames will have -beta-&lt;date&gt; added to them
+Release | file_suffix | &lt;string or empty&gt; | An optional extra suffix for the release version and filenames
 
