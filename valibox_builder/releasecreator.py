@@ -20,21 +20,14 @@ import os
 import shutil
 import sys
 
-# Structure:
-# (board_name, binfile_name)
-
-# TODO: we should get this information from the config package (the one contianing diffconfig and files/ for each target device)
-IMAGES = [
-    ("gl-inet", "ar71xx/generic/openwrt-ar71xx-generic-gl-inet-6416A-v1-squashfs-sysupgrade.bin"),
-    ("gl-ar150", "ar71xx/generic/openwrt-ar71xx-generic-gl-ar150-squashfs-sysupgrade.bin"),
-    ("gl-mt300a", "ramips/mt7620/openwrt-ramips-mt7620-gl-mt300a-squashfs-sysupgrade.bin")
-]
-
 class ReleaseEnvironmentError(Exception):
     pass
 
 class ReleaseCreator:
-    def __init__(self, version, changelog_filename, target_dir):
+    def __init__(self, targets, target_info_base_dir, version, changelog_filename, target_dir):
+        self.targets = targets
+        self.target_info_base_dir = target_info_base_dir
+        self.images = []
         self.version = version
         self.changelog_filename = changelog_filename
         self.target_dir = target_dir
@@ -44,28 +37,37 @@ class ReleaseCreator:
         if not os.path.exists(self.changelog_filename):
             raise ReleaseEnvironmentError("Changelog file does not exist: %s" % self.changelog_filename)
 
-        for image in IMAGES:
-            image_file_path = "bin/targets/%s" % image[1]
-            if not os.path.exists(image_file_path):
-                raise ReleaseEnvironmentError("Image file for %s does not exist (%s), please build it" % (image[0], image_file_path))
+        for target in self.targets:
+            info_file = os.path.join(self.target_info_base_dir, "devices", target, "image_info")
+            if not os.path.exists(info_file):
+                raise ReleaseEnvironmentError("Image information file does not exist: %s" % info_file)
+
+            with open(info_file) as inf:
+                line = inf.readline()
+                parts = line.split(",")
+                if len(parts) != 2:
+                    raise ReleaseEnvironmentError("Image information file (%s) does not contain <name>,<path>" % info_file)
+                image_name = parts[0].strip()
+                image_file = parts[1].strip()
+                self.images.append((image_name, image_file))
 
     def create_target_tree(self):
         if not os.path.exists(self.target_dir):
             os.mkdir(self.target_dir)
-        for image in IMAGES:
+        for image in self.images:
             td = self.target_dir + os.sep + image[0]
             if not os.path.exists(td):
                 os.mkdir(td)
 
     def copy_files(self):
-        for image in IMAGES:
+        for image in self.images:
             shutil.copyfile("bin/targets/%s" % image[1], "%s/%s/sidn_valibox_%s_%s.bin" % (self.target_dir, image[0], image[0], self.version))
             shutil.copyfile(self.changelog_filename, "%s/%s/%s.info.txt" % (self.target_dir, image[0], self.version))
 
     def read_sha256sums(self):
         with open("bin/targets/ar71xx/generic/sha256sums", "r") as sumsfile:
             for line in sumsfile.readlines():
-                for image in IMAGES:
+                for image in self.images:
                     imname = image[1].rpartition('/')[2]
                     if imname in line:
                         parts = line.split(" ")
@@ -73,7 +75,7 @@ class ReleaseCreator:
                         self.sums[image[0]] = parts[0] + "\n"
         with open("bin/targets/ramips/mt7620/sha256sums", "r") as sumsfile:
             for line in sumsfile.readlines():
-                for image in IMAGES:
+                for image in self.images:
                     imname = image[1].rpartition('/')[2]
                     if imname in line:
                         parts = line.split(" ")
@@ -81,7 +83,7 @@ class ReleaseCreator:
 
     def create_versions_file(self):
         with open("%s/versions.txt" % self.target_dir, "w") as outputfile:
-            for image in IMAGES:
+            for image in self.images:
                 outputfile.write("%s %s %s/sidn_valibox_%s_%s.bin %s/%s.info.txt %s" %
                     (image[0], self.version, image[0], image[0], self.version, image[0], self.version, self.sums[image[0]]))
 

@@ -171,9 +171,9 @@ def build_steps(config):
         if changelog_file == "":
             changelog_file = os.path.abspath(get_valibox_build_tools_dir()) + "/Valibox_Changelog.txt";
 
-        sb.add(CreateReleaseStep(version_string, changelog_file,
-                                       config.get("Release", "target_directory")).at("lede-source")
-                                       )
+        sb.add(CreateReleaseStep(targets, os.path.abspath(get_valibox_build_tools_dir()),
+                    version_string, changelog_file,
+                    config.get("Release", "target_directory")).at("lede-source"))
 
     return sb.steps
 

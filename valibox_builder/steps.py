@@ -118,12 +118,12 @@ class UpdatePkgMakefile(Step):
             return basic_cmd("cp %s %s" % (self.makefile + ".tmp", self.makefile))
 
 class CreateReleaseStep(Step):
-    def __init__(self, version_number, changelog_file, target_directory, directory=None):
+    def __init__(self, targets, target_info_base_dir, version_number, changelog_file, target_directory, directory=None):
         self.version_number = version_number
         self.changelog_file = changelog_file
         self.target_directory = target_directory
         self.directory = directory
-        self.rc = ReleaseCreator(version_number, changelog_file, os.path.abspath(target_directory))
+        self.rc = ReleaseCreator(targets, target_info_base_dir, version_number, changelog_file, os.path.abspath(target_directory))
 
     def perform(self):
         try:
